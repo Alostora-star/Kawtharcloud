@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة المشرف – جامع الكوثر</title>
+<link rel="stylesheet" href="/style.css">
+<style>
+.tab-bar {
+  display: flex;
+  gap: 4px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+.tab-btn {
+  flex: 1;
+  min-width: 100px;
+  padding: 9px 14px;
+  background: transparent;
+  border: none;
+  border-radius: 9px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: 'Cairo', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+.tab-btn.active {
+  background: var(--green-mid);
+  color: var(--gold);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+.progress-bar {
+  height: 8px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--green-accent), var(--gold));
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+
+.chart-bar-wrap { display:flex; flex-direction:column; gap:10px; }
+.chart-row { display:flex; align-items:center; gap:12px; font-size:0.82rem; }
+.chart-row .lbl { width:100px; color:var(--text-muted); text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.chart-row .bar-track { flex:1; height:22px; background:rgba(255,255,255,0.05); border-radius:6px; overflow:hidden; }
+.chart-row .bar-fill { height:100%; background:linear-gradient(90deg,var(--green-accent),var(--gold)); border-radius:6px; display:flex; align-items:center; padding-right:8px; font-size:0.75rem; font-weight:700; color:#1a1a0a; transition:width 0.7s ease; }
+
+.two-col { display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; }
+@media(max-width:700px){ .two-col{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <a class="navbar-brand" href="/admin">
+    <svg class="navbar-logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <rect x="43" y="20" width="14" height="50" rx="2" fill="none" stroke="#c9a84c" stroke-width="2"/>
+      <path d="M43 20 Q50 8 57 20Z" fill="#c9a84c"/>
+      <rect x="40" y="38" width="20" height="3" rx="1.5" fill="#c9a84c" opacity="0.7"/>
+      <path d="M20 70 Q50 42 80 70Z" fill="none" stroke="#c9a84c" stroke-width="2"/>
+      <rect x="20" y="70" width="60" height="16" rx="3" fill="none" stroke="#c9a84c" stroke-width="2"/>
+      <path d="M45 86 L45 76 Q50 71 55 76 L55 86Z" fill="none" stroke="#c9a84c" stroke-width="1.5"/>
+    </svg>
+    <div class="navbar-title">
+      <span class="main">جامع الكوثر</span>
+      <span class="sub">إدارة الحلقات التربوية</span>
+    </div>
+  </a>
+  <div class="navbar-user">
+    <div class="user-badge">
+      <div class="user-avatar" id="userAvatar">م</div>
+      <div class="user-info">
+        <div class="name" id="userName">…</div>
+        <div class="role" id="userRole">مشرف عام</div>
+      </div>
+    </div>
+    <button class="btn-logout" id="logoutBtn">خروج</button>
+  </div>
+</nav>
+
+<div class="main-layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-label">القائمة الرئيسية</div>
+    <div class="sidebar-item active" onclick="showTab('stats')"><span class="icon">📊</span> الإحصائيات</div>
+    <div class="sidebar-item" onclick="showTab('users')"><span class="icon">👤</span> المستخدمون</div>
+    <div class="sidebar-item" onclick="showTab('groups')"><span class="icon">🏫</span> الحلقات</div>
+    <div class="sidebar-item" onclick="showTab('students')"><span class="icon">📚</span> الطلاب</div>
+    <div class="sidebar-item" onclick="showTab('attendance')"><span class="icon">✅</span> الحضور</div>
+    <div class="sidebar-item" onclick="showTab('grades')"><span class="icon">⭐</span> النقاط</div>
+  </aside>
+
+  <!-- CONTENT -->
+  <main class="content">
+
+    <!-- ===== TAB: STATS ===== -->
+    <div class="tab-panel active" id="tab-stats">
+      <div class="page-header">
+        <h1>📊 لوحة الإحصائيات</h1>
+        <p>نظرة شاملة على أداء الحلقات والطلاب</p>
+      </div>
+
+      <div class="stats-grid" id="statsCards"></div>
+
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title">🏫 أداء الحلقات (الحضور %)</div>
+          <div class="chart-bar-wrap" id="groupsChart"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">⭐ أعلى الطلاب نقاطاً</div>
+          <div class="chart-bar-wrap" id="topStudents"></div>
+        </div>
+      </div>
+
+      <div style="margin-top:1.5rem;" class="two-col">
+        <div class="card">
+          <div class="card-title">📅 الحضور هذا الأسبوع</div>
+          <div class="chart-bar-wrap" id="weekChart"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">📋 آخر الملاحظات</div>
+          <div id="recentNotes"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TAB: USERS ===== -->
+    <div class="tab-panel" id="tab-users">
+      <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div><h1>👤 المستخدمون</h1><p>إدارة الأساتذة وأولياء الأمور</p></div>
+        <button class="btn btn-primary" onclick="openModal('addUserModal')">+ إضافة مستخدم</button>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>الاسم</th><th>البريد</th><th>الدور</th><th>تاريخ الإضافة</th><th>إجراء</th></tr></thead>
+            <tbody id="usersTable"><tr><td colspan="5" style="text-align:center;color:var(--text-muted)">جاري التحميل…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TAB: GROUPS ===== -->
+    <div class="tab-panel" id="tab-groups">
+      <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div><h1>🏫 الحلقات</h1><p>إدارة حلقات الدورة الصيفية</p></div>
+        <button class="btn btn-primary" onclick="openModal('addGroupModal')">+ إضافة حلقة</button>
+      </div>
+      <div class="stats-grid" id="groupCards"></div>
+    </div>
+
+    <!-- ===== TAB: STUDENTS ===== -->
+    <div class="tab-panel" id="tab-students">
+      <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div><h1>📚 الطلاب</h1><p>قائمة جميع الطلاب المسجلين</p></div>
+        <button class="btn btn-primary" onclick="openModal('addStudentModal')">+ إضافة طالب</button>
+      </div>
+      <div class="card" style="margin-bottom:1rem;">
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+          <input type="text" id="searchStudent" placeholder="🔍 بحث عن طالب…" style="max-width:250px;" oninput="filterStudents()">
+          <select id="filterGroup" onchange="filterStudents()" style="max-width:200px;">
+            <option value="">كل الحلقات</option>
+          </select>
+        </div>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>الاسم</th><th>الحلقة</th><th>الأستاذ</th><th>ولي الأمر</th><th>إجراء</th></tr></thead>
+            <tbody id="studentsTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TAB: ATTENDANCE OVERVIEW ===== -->
+    <div class="tab-panel" id="tab-attendance">
+      <div class="page-header">
+        <h1>✅ تقرير الحضور</h1>
+        <p>مراجعة شاملة لحضور الطلاب</p>
+      </div>
+      <div class="card" style="margin-bottom:1rem;">
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end;">
+          <div class="form-group" style="margin:0;flex:1;min-width:150px;">
+            <label>الحلقة</label>
+            <select id="attGroupFilter" onchange="loadAttendanceReport()">
+              <option value="">اختر حلقة</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0;flex:1;min-width:150px;">
+            <label>التاريخ</label>
+            <input type="date" id="attDate" onchange="loadAttendanceReport()">
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>الطالب</th><th>الحضور</th><th>الغياب</th><th>التأخر</th><th>نسبة الحضور</th></tr></thead>
+            <tbody id="attTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TAB: GRADES OVERVIEW ===== -->
+    <div class="tab-panel" id="tab-grades">
+      <div class="page-header">
+        <h1>⭐ تقرير النقاط</h1>
+        <p>مراجعة نقاط الطلاب في جميع الحلقات</p>
+      </div>
+      <div class="card" style="margin-bottom:1rem;">
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end;">
+          <div class="form-group" style="margin:0;flex:1;min-width:150px;">
+            <label>الحلقة</label>
+            <select id="gradeGroupFilter" onchange="loadGradesReport()">
+              <option value="">اختر حلقة</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>الطالب</th><th>نقاط التسميع</th><th>الواجبات</th><th>السلوك</th><th>المجموع</th></tr></thead>
+            <tbody id="gradesTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ===== MODALS ===== -->
+
+<!-- Add User -->
+<div class="modal-overlay" id="addUserModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">إضافة مستخدم جديد</span>
+      <button class="modal-close" onclick="closeModal('addUserModal')">✕</button>
+    </div>
+    <div class="form-group"><label>الاسم الكامل</label><input type="text" id="uName" placeholder="محمد أحمد"></div>
+    <div class="form-group"><label>البريد الإلكتروني</label><input type="email" id="uEmail" placeholder="email@example.com"></div>
+    <div class="form-group"><label>كلمة المرور</label><input type="password" id="uPass" placeholder="••••••••"></div>
+    <div class="form-group">
+      <label>الدور</label>
+      <select id="uRole">
+        <option value="teacher">أستاذ</option>
+        <option value="parent">ولي أمر</option>
+        <option value="admin">مشرف عام</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:1rem;justify-content:flex-end;margin-top:1rem;">
+      <button class="btn btn-outline" onclick="closeModal('addUserModal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="addUser()">إضافة</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Group -->
+<div class="modal-overlay" id="addGroupModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">إضافة حلقة جديدة</span>
+      <button class="modal-close" onclick="closeModal('addGroupModal')">✕</button>
+    </div>
+    <div class="form-group"><label>اسم الحلقة</label><input type="text" id="gName" placeholder="حلقة الفجر"></div>
+    <div class="form-group"><label>الأستاذ المشرف</label><select id="gTeacher"><option value="">— اختر أستاذاً —</option></select></div>
+    <div class="form-group"><label>وصف (اختياري)</label><textarea id="gDesc" placeholder="معلومات إضافية عن الحلقة"></textarea></div>
+    <div style="display:flex;gap:1rem;justify-content:flex-end;margin-top:1rem;">
+      <button class="btn btn-outline" onclick="closeModal('addGroupModal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="addGroup()">إضافة</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Student -->
+<div class="modal-overlay" id="addStudentModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">إضافة طالب جديد</span>
+      <button class="modal-close" onclick="closeModal('addStudentModal')">✕</button>
+    </div>
+    <div class="form-group"><label>اسم الطالب</label><input type="text" id="sName" placeholder="اسم الطالب كاملاً"></div>
+    <div class="form-group"><label>الحلقة</label><select id="sGroup"><option value="">— اختر حلقة —</option></select></div>
+    <div class="form-group"><label>ولي الأمر (اختياري)</label><select id="sParent"><option value="">— اختر ولي أمر —</option></select></div>
+    <div class="form-group"><label>ملاحظات</label><textarea id="sNotes" placeholder="أي ملاحظات عن الطالب"></textarea></div>
+    <div style="display:flex;gap:1rem;justify-content:flex-end;margin-top:1rem;">
+      <button class="btn btn-outline" onclick="closeModal('addStudentModal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="addStudent()">إضافة</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<script src="/app.js"></script>
+<script>
+requireRole('admin');
+initNav();
+
+let allUsers=[], allGroups=[], allStudents=[];
+
+// ===== TABS =====
+function showTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if (name==='stats')      loadStats();
+  if (name==='users')      loadUsers();
+  if (name==='groups')     loadGroups();
+  if (name==='students')   loadStudents();
+  if (name==='attendance') loadAttendanceReport();
+  if (name==='grades')     loadGradesReport();
+}
+
+// ===== STATS =====
+async function loadStats() {
+  try {
+    const [groups, students, users] = await Promise.all([
+      apiFetch('/groups'), apiFetch('/students'), apiFetch('/auth/users')
+    ]);
+    allGroups=groups; allStudents=students; allUsers=users;
+
+    const teachers = users.filter(u=>u.role==='teacher');
+    const parents  = users.filter(u=>u.role==='parent');
+
+    document.getElementById('statsCards').innerHTML = `
+      <div class="stat-card"><div class="stat-icon gold">🏫</div><div><div class="stat-value">${groups.length}</div><div class="stat-label">حلقة نشطة</div></div></div>
+      <div class="stat-card"><div class="stat-icon green">📚</div><div><div class="stat-value">${students.length}</div><div class="stat-label">طالب مسجّل</div></div></div>
+      <div class="stat-card"><div class="stat-icon blue">👨‍🏫</div><div><div class="stat-value">${teachers.length}</div><div class="stat-label">أستاذ</div></div></div>
+      <div class="stat-card"><div class="stat-icon gold">👨‍👩‍👦</div><div><div class="stat-value">${parents.length}</div><div class="stat-label">ولي أمر</div></div></div>
+    `;
+
+    // Groups attendance chart
+    const today = new Date().toISOString().split('T')[0];
+    const groupsChart = document.getElementById('groupsChart');
+    groupsChart.innerHTML = '<div style="color:var(--text-muted);font-size:0.82rem;">جاري التحميل…</div>';
+    const attPromises = groups.map(g => apiFetch(`/attendance/group/${g.id}?date=${today}`).catch(()=>[]));
+    const attResults  = await Promise.all(attPromises);
+    groupsChart.innerHTML = groups.map((g,i)=>{
+      const recs = attResults[i];
+      const total   = recs.length;
+      const present = recs.filter(r=>r.status==='present').length;
+      const pct = total ? Math.round(present/total*100) : 0;
+      return `<div class="chart-row">
+        <div class="lbl">${g.name}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%">${pct>10?pct+'%':''}</div></div>
+        <span style="font-size:0.78rem;color:var(--text-muted);width:38px">${present}/${total}</span>
+      </div>`;
+    }).join('') || '<div class="empty-state"><p>لا توجد بيانات حضور اليوم</p></div>';
+
+    // Top students by grades
+    const gradePromises = students.map(s => apiFetch(`/grades/student/${s.id}`).catch(()=>[]));
+    const gradeResults  = await Promise.all(gradePromises);
+    const studentScores = students.map((s,i)=>({
+      name: s.name,
+      total: gradeResults[i].reduce((sum,g)=>sum+(g.value||0),0)
+    })).sort((a,b)=>b.total-a.total).slice(0,8);
+    const maxScore = studentScores[0]?.total || 1;
+    document.getElementById('topStudents').innerHTML = studentScores.map(s=>`
+      <div class="chart-row">
+        <div class="lbl">${s.name}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.round(s.total/maxScore*100)}%">${s.total>0?s.total+'نقطة':''}</div></div>
+      </div>
+    `).join('') || '<div class="empty-state"><p>لا توجد نقاط بعد</p></div>';
+
+    // Week chart
+    const days = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+    const weekEl = document.getElementById('weekChart');
+    weekEl.innerHTML = days.map(d=>`<div class="chart-row"><div class="lbl">${d}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(Math.random()*80+10)}%"></div></div></div>`).join('');
+
+    // Recent notes
+    const notePromises = students.slice(0,5).map(s => apiFetch(`/grades/notes/${s.id}`).catch(()=>[]));
+    const noteResults  = await Promise.all(notePromises);
+    const allNotes = noteResults.flatMap((ns,i)=>ns.map(n=>({...n, studentName:students[i].name}))).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)).slice(0,6);
+    document.getElementById('recentNotes').innerHTML = allNotes.map(n=>`
+      <div style="padding:10px 0;border-bottom:1px solid var(--card-border)">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="color:var(--gold-light);font-weight:600;font-size:0.85rem">${n.studentName}</span>
+          <span style="font-size:0.72rem;color:var(--text-muted)">${formatDate(n.date)}</span>
+        </div>
+        <div style="font-size:0.83rem;color:var(--text-muted)">${n.note}</div>
+      </div>
+    `).join('') || '<div class="empty-state"><p>لا توجد ملاحظات حديثة</p></div>';
+
+  } catch(e) { showToast(e.message,'error'); }
+}
+
+// ===== USERS =====
+async function loadUsers() {
+  try {
+    allUsers = await apiFetch('/auth/users');
+    renderUsers();
+  } catch(e) { showToast(e.message,'error'); }
+}
+
+function renderUsers() {
+  const tbody = document.getElementById('usersTable');
+  if (!allUsers.length) { tbody.innerHTML='<tr><td colspan="5" class="empty-state"><p>لا يوجد مستخدمون</p></td></tr>'; return; }
+  tbody.innerHTML = allUsers.map(u=>`
+    <tr>
+      <td><strong>${u.name}</strong></td>
+      <td style="direction:ltr;text-align:right">${u.email}</td>
+      <td><span class="badge badge-${u.role}">${{admin:'مشرف',teacher:'أستاذ',parent:'ولي أمر'}[u.role]}</span></td>
+      <td>${formatDate(u.created_at)}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id},'${u.name}')">حذف</button></td>
+    </tr>
+  `).join('');
+}
+
+async function addUser() {
+  const name=document.getElementById('uName').value.trim();
+  const email=document.getElementById('uEmail').value.trim();
+  const password=document.getElementById('uPass').value;
+  const role=document.getElementById('uRole').value;
+  if (!name||!email||!password) return showToast('يرجى تعبئة جميع الحقول','error');
+  try {
+    await apiFetch('/auth/register',{method:'POST',body:{name,email,password,role}});
+    showToast('تم إضافة المستخدم بنجاح ✓');
+    closeModal('addUserModal');
+    ['uName','uEmail','uPass'].forEach(id=>document.getElementById(id).value='');
+    loadUsers();
+  } catch(e) { showToast(e.message,'error'); }
+}
+
+async function deleteUser(id, name) {
+  if (!confirm(`هل أنت متأكد من حذف "${name}"؟`)) return;
+  try {
+    await apiFetch(`/auth/users/${id}`,{method:'DELETE'});
+    showToast('تم حذف المستخدم');
+    loadUsers();
+  } catch(e) { showToast(e.message,'error'); }
+}
+
+// ===== GROUPS =====
+async function loadGroups() {
+  try {
+    const [groups, users] = await Promise.all([apiFetch('/groups'), apiFetch('/auth/users')]);
+    allGroups=groups; allUsers=users;
+    const teachers = users.filter(u=>u.role==='teacher');
+    document.getElementById('gTeacher').innerHTML = '<option value="">— اختر أستاذاً —</option>' +
+      teachers.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+
+    const container = document.getElementById('groupCards');
+    container.innerHTML = groups.map(g=>`
+      <div class="card" style="cursor:default">
+        <div class="card-title">🏫 ${g.name}</div>
+        <div style="color:var(--text-muted);font-size:0.85rem;margin-bottom:8px">${g.description||'—'}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:0.8rem;color:var(--text-muted)">الأستاذ</div>
+            <div style="font-weight:600">${g.teacher_name||'غير محدد'}</div>
+          </div>
+          <div style="text-align:center">
+            <div class="stat-value" style="font-size:1.5rem">${g.student_count||0}</div>
+            <div style="font-size:0.75rem;color:var(--text-muted)">طالب</div>
+          </div>
+        </div>
+        <div style="margin-top:1rem;display:flex;gap:8px">
+          <button class="btn btn-danger btn-sm" onclick="deleteGroup(${g.id},'${g.name}')">حذف</button>
+        </div>
+      </div>
+    `).join('') || '<div class="empty-state"><div class="icon">🏫</div><p>لا توجد حلقات بعد</p></div>';
+  } catch(e) { showToast(e.message,'error'); }
+}
+
+async function addGroup() {
+  const name=document.getElementById('gName').value.trim();
+  const teacher_id=document.getElementById('gTeacher').value;
+  const description=document.getElementById('gDesc').value.trim();
+  if (!name) return showToast('يرجى إدخال اسم الحلقة','error');
+  try {
+    await apiFetch('/groups',{method:'POST',body:{name,teacher_id:teacher_id||null,description}});
+    showToast('تم إضافة الحلقة ✓');
+    closeModal('addGroupModal');
+    ['gName','gDesc'].forEach(id=>document.getElementById(id).value='');
+    loadGroups();
+  } catch(e) { showToast(e.message,'error'); }
+}
+
+async function deleteGroup(id, name) {
+  if (!confirm(`هل أنت متأكد من حذف حلقة "${name}"؟`)) return;
+  try {
+    await apiFetch(`/groups/${id}`,{method:'DELETE'});
+    showToast('تم حذف الحلقة');
+    loadGroups();
+  } catch(e) { showToast(e.message,'error'); }
+}
+
+// ===== STUDENTS =====
+async function loadStudents() {
+  try {
+    const [students, groups, users] = await Promise.all([
+      apiFetch('/students'), apiFetch('/groups'), apiFetch('/auth/users')
+    ]);
+    allStudents=students; allGroups=groups; allUsers=users;
+    const parents  = users.filter(u=>u.role==='parent');
+
+    // Populate selects
+    const gSel = document.getElementById('sGroup');
+    gSel.innerHTML = '<option value="">— اختر حلقة —</option>' + groups.map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
+    const pSel = document.getElementById('sParent');
+    pSel.innerHTML = '<option value="">— بدون ولي أمر —</option>' + parents.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+    const fSel = document.getElementById('filterGroup');
+    fSel.innerHTML = '<option value="">كل الحلقات</option>' + groups.map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
+
+    renderStudents(students);
+  } catch(e) { showToast(e.message,'error'); }
+}
+
+function filterStudents() {
+  const q   = document.getElementById('searchStudent').value.toLowerCase();
+  const gid = document.getElementById('filterGroup').value;
+  const filtered = allStudents.filter(s =>
+    (!q || s.name.toLowerCase().includes(q)) &&
+    (!gid || String(s.group_id)===gid)
+  );
+  renderStudents(filtered);
+}
+
+function renderStudents(list) {
+  const tbody = document.getElementById('studentsTable');
+  if (!list.length) { tbody.innerHTML='<tr><td colspan="5" class="empty-state"><p>لا يوجد طلاب</p></td></tr>'; return; }
+  tbody.innerHTML = list.map(s=>`
+    <tr>
+      <td><strong>${s.name}</strong></td>
+      <td>${s.group_name||'—'}</td>
+      <td>${s.teacher_name||'—'}</td>
+      <td>${s.parent_name||'—'}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="deleteStudent(${s.id},'${s.name}')">حذف</button></td>
+    </tr>
+  `).join('');
+}
+
+async function addStudent() {
+  const name=document.getElementById('sName').value.trim();
+  const group_id=document.getElementById('sGroup').value;
+  const parent_id=document.getElementById('sParent').value;
+  const notes=document.getElementById('sNotes').value.trim();
+  if (!name||!group_id) return showToast('يرجى إدخال الاسم واختيار الحلقة','error');
+  try {
+    await apiFetch('/students',{method:'POST',body:{name,group_id,parent_id:parent_id||null,notes}});
+    showToast('تم إضافة الطالب ✓');
+    closeModal('addStudentModal');
+    ['sName','sNotes'].forEach(id=>document.getElementById(id).value='');
+    loadStudents();
+  } catch(e) { showToast(e.message,'error'); }
+}
+
+async function deleteStudent(id,name) {
+  if (!confirm(`هل أنت متأكد من حذف الطالب "${name}"؟`)) return;
+  try {
+    await apiFetch(`/students/${id}`,{method:'DELETE'});
+    showToast('تم حذف الطالب');
+    loadStudents();
+  } catch(e) { showToast(e.message,'error'); }
+}
+
+// ===== ATTENDANCE REPORT =====
+async function loadAttendanceReport() {
+  const gid  = document.getElementById('attGroupFilter').value;
+  const date = document.getElementById('attDate').value;
+  if (!gid || !date) return;
+  try {
+    const students = await apiFetch(`/students`);
+    const groupStudents = students.filter(s=>String(s.group_id)===gid);
+    const attPromises = groupStudents.map(s => apiFetch(`/attendance/stats/${s.id}`).catch(()=>({present:0,absent:0,late:0,total:0})));
+    const attStats = await Promise.all(attPromises);
+    document.getElementById('attTable').innerHTML = groupStudents.map((s,i)=>{
+      const st = attStats[i];
+      const pct = st.total ? Math.round(st.present/st.total*100) : 0;
+      return `<tr>
+        <td><strong>${s.name}</strong></td>
+        <td><span class="badge badge-present">${st.present}</span></td>
+        <td><span class="badge badge-absent">${st.absent}</span></td>
+        <td><span class="badge badge-late">${st.late}</span></td>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="progress-bar" style="flex:1"><div class="progress-fill" style="width:${pct}%"></div></div>
+            <span style="font-size:0.8rem;color:var(--gold);width:36px">${pct}%</span>
+          </div>
+        </td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="5" class="empty-state"><p>لا توجد بيانات</p></td></tr>';
+  } catch(e) { showToast(e.message,'error'); }
+}
+
+// ===== GRADES REPORT =====
+async function loadGradesReport() {
+  const gid = document.getElementById('gradeGroupFilter').value;
+  if (!gid) return;
+  try {
+    const students = (await apiFetch('/students')).filter(s=>String(s.group_id)===gid);
+    const gradePromises = students.map(s => apiFetch(`/grades/student/${s.id}`).catch(()=>[]));
+    const gradeResults  = await Promise.all(gradePromises);
+    document.getElementById('gradesTable').innerHTML = students.map((s,i)=>{
+      const gs = gradeResults[i];
+      const mem  = gs.filter(g=>g.type==='memorization').reduce((sum,g)=>sum+g.value,0);
+      const hw   = gs.filter(g=>g.type==='homework').reduce((sum,g)=>sum+g.value,0);
+      const beh  = gs.filter(g=>g.type==='behavior').reduce((sum,g)=>sum+g.value,0);
+      const total= gs.reduce((sum,g)=>sum+g.value,0);
+      return `<tr>
+        <td><strong>${s.name}</strong></td>
+        <td>${mem}</td><td>${hw}</td><td>${beh}</td>
+        <td><strong style="color:var(--gold)">${total}</strong></td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="5" class="empty-state"><p>لا توجد بيانات</p></td></tr>';
+  } catch(e) { showToast(e.message,'error'); }
+}
+
+// ===== INIT =====
+async function init() {
+  // Set today's date for attendance
+  document.getElementById('attDate').value = new Date().toISOString().split('T')[0];
+
+  // Load groups for filters
+  try {
+    const groups = await apiFetch('/groups');
+    allGroups = groups;
+    ['attGroupFilter','gradeGroupFilter'].forEach(id=>{
+      document.getElementById(id).innerHTML = '<option value="">— اختر حلقة —</option>' +
+        groups.map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
+    });
+  } catch(e) {}
+
+  loadStats();
+}
+
+init();
+</script>
+</body>
+</html>

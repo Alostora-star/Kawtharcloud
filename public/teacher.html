@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة الأستاذ – جامع الكوثر</title>
+<link rel="stylesheet" href="/style.css">
+<style>
+.tab-bar { display:flex; gap:4px; background:rgba(0,0,0,0.2); border-radius:12px; padding:4px; margin-bottom:1.5rem; flex-wrap:wrap; }
+.tab-btn { flex:1; min-width:90px; padding:9px 12px; background:transparent; border:none; border-radius:9px; color:var(--text-muted); cursor:pointer; font-family:'Cairo',sans-serif; font-size:0.85rem; font-weight:600; transition:all 0.2s; }
+.tab-btn.active { background:var(--green-mid); color:var(--gold); box-shadow:0 2px 8px rgba(0,0,0,0.3); }
+.tab-panel { display:none; }
+.tab-panel.active { display:block; }
+
+.student-row { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-radius:12px; border:1px solid var(--card-border); background:var(--card-bg); margin-bottom:8px; transition:all 0.2s; }
+.student-row:hover { border-color:var(--gold); }
+.student-name { font-weight:600; font-size:0.95rem; }
+.student-meta { font-size:0.78rem; color:var(--text-muted); margin-top:2px; }
+
+.type-tabs { display:flex; gap:8px; margin-bottom:1rem; flex-wrap:wrap; }
+.type-tab { padding:6px 16px; border-radius:8px; border:1px solid var(--card-border); background:transparent; color:var(--text-muted); cursor:pointer; font-family:'Cairo',sans-serif; font-size:0.82rem; transition:all 0.2s; }
+.type-tab.active { background:rgba(201,168,76,0.15); color:var(--gold); border-color:rgba(201,168,76,0.4); }
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <a class="navbar-brand" href="/teacher">
+    <svg class="navbar-logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <rect x="43" y="20" width="14" height="50" rx="2" fill="none" stroke="#c9a84c" stroke-width="2"/>
+      <path d="M43 20 Q50 8 57 20Z" fill="#c9a84c"/>
+      <rect x="40" y="38" width="20" height="3" rx="1.5" fill="#c9a84c" opacity="0.7"/>
+      <path d="M20 70 Q50 42 80 70Z" fill="none" stroke="#c9a84c" stroke-width="2"/>
+      <rect x="20" y="70" width="60" height="16" rx="3" fill="none" stroke="#c9a84c" stroke-width="2"/>
+      <path d="M45 86 L45 76 Q50 71 55 76 L55 86Z" fill="none" stroke="#c9a84c" stroke-width="1.5"/>
+    </svg>
+    <div class="navbar-title">
+      <span class="main">جامع الكوثر</span>
+      <span class="sub">لوحة الأستاذ</span>
+    </div>
+  </a>
+  <div class="navbar-user">
+    <div class="user-badge">
+      <div class="user-avatar" id="userAvatar">أ</div>
+      <div class="user-info">
+        <div class="name" id="userName">…</div>
+        <div class="role" id="userRole">أستاذ</div>
+      </div>
+    </div>
+    <button class="btn-logout" id="logoutBtn">خروج</button>
+  </div>
+</nav>
+
+<div class="main-layout">
+  <aside class="sidebar">
+    <div class="sidebar-label">القائمة</div>
+    <div class="sidebar-item active" onclick="switchTab('attendance',this)"><span class="icon">✅</span> الحضور</div>
+    <div class="sidebar-item" onclick="switchTab('grades',this)"><span class="icon">⭐</span> النقاط والتسميع</div>
+    <div class="sidebar-item" onclick="switchTab('homework',this)"><span class="icon">📝</span> الواجبات</div>
+    <div class="sidebar-item" onclick="switchTab('notes',this)"><span class="icon">💬</span> الملاحظات</div>
+    <div class="sidebar-item" onclick="switchTab('mystudents',this)"><span class="icon">👥</span> طلابي</div>
+  </aside>
+
+  <main class="content">
+
+    <!-- ===== ATTENDANCE ===== -->
+    <div class="tab-panel active" id="tab-attendance">
+      <div class="page-header"><h1>✅ تسجيل الحضور</h1><p>سجّل حضور طلابك يومياً</p></div>
+      <div class="card" style="margin-bottom:1rem;">
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end;">
+          <div class="form-group" style="margin:0;flex:1;min-width:150px;"><label>الحلقة</label>
+            <select id="attGroup" onchange="loadAttStudents()"><option value="">— اختر حلقة —</option></select></div>
+          <div class="form-group" style="margin:0;"><label>التاريخ</label>
+            <input type="date" id="attDate" onchange="loadAttStudents()"></div>
+          <button class="btn btn-primary" onclick="saveAllAttendance()">💾 حفظ الحضور</button>
+        </div>
+      </div>
+      <div id="attList"></div>
+    </div>
+
+    <!-- ===== GRADES ===== -->
+    <div class="tab-panel" id="tab-grades">
+      <div class="page-header"><h1>⭐ النقاط والتسميع</h1><p>أضف نقاط التسميع والأداء</p></div>
+      <div class="card" style="margin-bottom:1rem;">
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end;">
+          <div class="form-group" style="margin:0;flex:1;min-width:150px;"><label>الحلقة</label>
+            <select id="gradeGroup" onchange="loadGradeStudents()"><option value="">— اختر حلقة —</option></select></div>
+        </div>
+      </div>
+      <div id="gradeStudentList"></div>
+    </div>
+
+    <!-- ===== HOMEWORK ===== -->
+    <div class="tab-panel" id="tab-homework">
+      <div class="page-header"><h1>📝 الواجبات</h1><p>تسجيل وتقييم الواجبات</p></div>
+      <div class="card" style="margin-bottom:1rem;">
+        <div class="form-group"><label>اختر الحلقة</label>
+          <select id="hwGroup" onchange="loadHWStudents()"><option value="">— اختر حلقة —</option></select></div>
+      </div>
+      <div id="hwStudentList"></div>
+    </div>
+
+    <!-- ===== NOTES ===== -->
+    <div class="tab-panel" id="tab-notes">
+      <div class="page-header"><h1>💬 الملاحظات</h1><p>أضف ملاحظات على طلابك</p></div>
+      <div class="card" style="margin-bottom:1rem;">
+        <div class="form-group"><label>اختر الحلقة</label>
+          <select id="noteGroup" onchange="loadNoteStudents()"><option value="">— اختر حلقة —</option></select></div>
+      </div>
+      <div id="noteStudentList"></div>
+    </div>
+
+    <!-- ===== MY STUDENTS ===== -->
+    <div class="tab-panel" id="tab-mystudents">
+      <div class="page-header"><h1>👥 طلابي</h1><p>قائمة جميع طلابك وإحصائياتهم</p></div>
+      <div class="stats-grid" id="myStats"></div>
+      <div id="myStudentCards"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Grade Modal -->
+<div class="modal-overlay" id="gradeModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="gradeModalTitle">إضافة نقاط</span>
+      <button class="modal-close" onclick="closeModal('gradeModal')">✕</button>
+    </div>
+    <input type="hidden" id="gradeStudentId">
+    <div class="form-group"><label>نوع التقييم</label>
+      <select id="gradeType">
+        <option value="memorization">تسميع</option>
+        <option value="points">نقاط عامة</option>
+        <option value="behavior">سلوك</option>
+      </select>
+    </div>
+    <div class="form-group"><label>العنوان</label><input type="text" id="gradeTitle" placeholder="مثال: تسميع سورة البقرة"></div>
+    <div style="display:flex;gap:1rem;">
+      <div class="form-group" style="flex:1"><label>النقاط المحصّلة</label><input type="number" id="gradeValue" min="0" max="100" value="0"></div>
+      <div class="form-group" style="flex:1"><label>من أصل</label><input type="number" id="gradeMax" min="1" value="10"></div>
+    </div>
+    <div class="form-group"><label>التاريخ</label><input type="date" id="gradeDate"></div>
+    <div class="form-group"><label>ملاحظة</label><textarea id="gradeNote" placeholder="ملاحظة اختيارية"></textarea></div>
+    <div style="display:flex;gap:1rem;justify-content:flex-end;margin-top:1rem;">
+      <button class="btn btn-outline" onclick="closeModal('gradeModal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveGrade()">حفظ</button>
+    </div>
+  </div>
+</div>
+
+<!-- Note Modal -->
+<div class="modal-overlay" id="noteModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="noteModalTitle">إضافة ملاحظة</span>
+      <button class="modal-close" onclick="closeModal('noteModal')">✕</button>
+    </div>
+    <input type="hidden" id="noteStudentId">
+    <div class="form-group"><label>التاريخ</label><input type="date" id="noteDate"></div>
+    <div class="form-group"><label>الملاحظة</label><textarea id="noteText" placeholder="اكتب ملاحظتك هنا…" style="min-height:120px"></textarea></div>
+    <div style="display:flex;gap:1rem;justify-content:flex-end;margin-top:1rem;">
+      <button class="btn btn-outline" onclick="closeModal('noteModal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveNote()">حفظ</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<script src="/app.js"></script>
+<script>
+requireRole('teacher','admin');
+initNav();
+
+let myGroups=[], attMap={};
+const today = new Date().toISOString().split('T')[0];
+
+function switchTab(name, el) {
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sidebar-item').forEach(i=>i.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  el.classList.add('active');
+}
+
+async function init() {
+  document.getElementById('attDate').value = today;
+  document.getElementById('gradeDate').value = today;
+  document.getElementById('noteDate').value = today;
+  try {
+    myGroups = await apiFetch('/groups');
+    const selects = ['attGroup','gradeGroup','hwGroup','noteGroup'];
+    selects.forEach(id=>{
+      document.getElementById(id).innerHTML = '<option value="">— اختر حلقة —</option>' +
+        myGroups.map(g=>`<option value="${g.id}">${g.name} (${g.student_count||0} طالب)</option>`).join('');
+    });
+    loadMyStudents();
+  } catch(e){ showToast(e.message,'error'); }
+}
+
+// ===== ATTENDANCE =====
+async function loadAttStudents() {
+  const gid  = document.getElementById('attGroup').value;
+  const date = document.getElementById('attDate').value;
+  if (!gid||!date) return;
+  attMap = {};
+  try {
+    const records = await apiFetch(`/attendance/group/${gid}?date=${date}`);
+    records.forEach(r=>{ attMap[r.student_id] = r.status||null; });
+    document.getElementById('attList').innerHTML = `
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
+          <div class="card-title" style="margin:0">قائمة الطلاب (${records.length})</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-success btn-sm" onclick="markAll('present')">✓ كل حاضر</button>
+            <button class="btn btn-danger btn-sm" onclick="markAll('absent')">✗ كل غائب</button>
+          </div>
+        </div>
+        ${records.map(r=>`
+          <div class="student-row" id="row-${r.student_id}">
+            <div>
+              <div class="student-name">${r.student_name}</div>
+            </div>
+            <div class="att-btn-group">
+              <button class="att-btn ${r.status==='present'?'active-present':''}" onclick="setAtt(${r.student_id},'present',this)">حاضر</button>
+              <button class="att-btn ${r.status==='absent'?'active-absent':''}" onclick="setAtt(${r.student_id},'absent',this)">غائب</button>
+              <button class="att-btn ${r.status==='late'?'active-late':''}" onclick="setAtt(${r.student_id},'late',this)">متأخر</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  } catch(e){ showToast(e.message,'error'); }
+}
+
+function setAtt(sid, status, btn) {
+  attMap[sid] = status;
+  const row = document.getElementById('row-'+sid);
+  row.querySelectorAll('.att-btn').forEach(b=>{
+    b.className = 'att-btn';
+  });
+  btn.classList.add('active-'+status);
+}
+
+function markAll(status) {
+  document.querySelectorAll('.att-btn-group').forEach(grp=>{
+    const sid = grp.closest('.student-row').id.replace('row-','');
+    attMap[sid] = status;
+    grp.querySelectorAll('.att-btn').forEach(b=>b.className='att-btn');
+    const idx = ['present','absent','late'].indexOf(status);
+    grp.querySelectorAll('.att-btn')[idx].classList.add('active-'+status);
+  });
+}
+
+async function saveAllAttendance() {
+  const date = document.getElementById('attDate').value;
+  const records = Object.entries(attMap).filter(([,v])=>v).map(([id,status])=>({student_id:+id,status}));
+  if (!records.length) return showToast('لا توجد بيانات للحفظ','error');
+  try {
+    await apiFetch('/attendance/bulk',{method:'POST',body:{records,date}});
+    showToast(`تم حفظ حضور ${records.length} طالب ✓`);
+  } catch(e){ showToast(e.message,'error'); }
+}
+
+// ===== GRADES =====
+async function loadGradeStudents() {
+  const gid = document.getElementById('gradeGroup').value;
+  if (!gid) return;
+  try {
+    const students = (await apiFetch('/students')).filter(s=>String(s.group_id)===gid);
+    const gradePromises = students.map(s=>apiFetch(`/grades/student/${s.id}`).catch(()=>[]));
+    const gradeResults  = await Promise.all(gradePromises);
+    document.getElementById('gradeStudentList').innerHTML = students.map((s,i)=>{
+      const gs = gradeResults[i];
+      const total = gs.reduce((sum,g)=>sum+g.value,0);
+      const last  = gs[0];
+      return `
+        <div class="student-row">
+          <div>
+            <div class="student-name">${s.name}</div>
+            <div class="student-meta">مجموع النقاط: <strong style="color:var(--gold)">${total}</strong>
+              ${last?` · آخر: ${last.title||last.type} (${last.value}/${last.max_value})`:''}
+            </div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openGradeModal(${s.id},'${s.name}')">+ نقاط</button>
+        </div>`;
+    }).join('') || '<div class="empty-state"><p>لا يوجد طلاب في هذه الحلقة</p></div>';
+  } catch(e){ showToast(e.message,'error'); }
+}
+
+function openGradeModal(sid, name) {
+  document.getElementById('gradeStudentId').value = sid;
+  document.getElementById('gradeModalTitle').textContent = `إضافة نقاط – ${name}`;
+  document.getElementById('gradeValue').value = 0;
+  document.getElementById('gradeMax').value = 10;
+  document.getElementById('gradeTitle').value = '';
+  document.getElementById('gradeNote').value = '';
+  openModal('gradeModal');
+}
+
+async function saveGrade() {
+  const student_id = document.getElementById('gradeStudentId').value;
+  const type  = document.getElementById('gradeType').value;
+  const title = document.getElementById('gradeTitle').value.trim();
+  const value = +document.getElementById('gradeValue').value;
+  const max_value = +document.getElementById('gradeMax').value;
+  const notes = document.getElementById('gradeNote').value.trim();
+  const date  = document.getElementById('gradeDate').value;
+  try {
+    await apiFetch('/grades',{method:'POST',body:{student_id,type,title,value,max_value,notes,date}});
+    showToast('تم حفظ النقاط ✓');
+    closeModal('gradeModal');
+    loadGradeStudents();
+  } catch(e){ showToast(e.message,'error'); }
+}
+
+// ===== HOMEWORK =====
+async function loadHWStudents() {
+  const gid = document.getElementById('hwGroup').value;
+  if (!gid) return;
+  try {
+    const students = (await apiFetch('/students')).filter(s=>String(s.group_id)===gid);
+    document.getElementById('hwStudentList').innerHTML = `
+      <div class="card">
+        <div class="card-title">📝 تقييم الواجبات</div>
+        ${students.map(s=>`
+          <div class="student-row">
+            <div class="student-name">${s.name}</div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <select id="hw-${s.id}" style="width:120px;padding:6px 10px;font-size:0.82rem">
+                <option value="">لم يُراجَع</option>
+                <option value="10">ممتاز (10)</option>
+                <option value="8">جيد جداً (8)</option>
+                <option value="6">جيد (6)</option>
+                <option value="4">مقبول (4)</option>
+                <option value="0">لم يأتِ (0)</option>
+              </select>
+              <button class="btn btn-success btn-sm" onclick="saveHW(${s.id},'${s.name}')">حفظ</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>`;
+  } catch(e){ showToast(e.message,'error'); }
+}
+
+async function saveHW(sid, name) {
+  const val = document.getElementById('hw-'+sid).value;
+  if (!val) return showToast('اختر تقييم الواجب أولاً','error');
+  try {
+    await apiFetch('/grades',{method:'POST',body:{student_id:sid,type:'homework',title:'واجب يومي',value:+val,max_value:10,date:today}});
+    showToast(`تم حفظ واجب ${name} ✓`);
+  } catch(e){ showToast(e.message,'error'); }
+}
+
+// ===== NOTES =====
+async function loadNoteStudents() {
+  const gid = document.getElementById('noteGroup').value;
+  if (!gid) return;
+  try {
+    const students = (await apiFetch('/students')).filter(s=>String(s.group_id)===gid);
+    document.getElementById('noteStudentList').innerHTML = students.map(s=>`
+      <div class="student-row">
+        <div class="student-name">${s.name}</div>
+        <button class="btn btn-outline btn-sm" onclick="openNoteModal(${s.id},'${s.name}')">+ ملاحظة</button>
+      </div>`).join('') || '<div class="empty-state"><p>لا يوجد طلاب</p></div>';
+  } catch(e){ showToast(e.message,'error'); }
+}
+
+function openNoteModal(sid,name) {
+  document.getElementById('noteStudentId').value = sid;
+  document.getElementById('noteModalTitle').textContent = `ملاحظة على ${name}`;
+  document.getElementById('noteText').value = '';
+  openModal('noteModal');
+}
+
+async function saveNote() {
+  const student_id = document.getElementById('noteStudentId').value;
+  const note = document.getElementById('noteText').value.trim();
+  const date = document.getElementById('noteDate').value;
+  if (!note) return showToast('يرجى كتابة الملاحظة','error');
+  try {
+    await apiFetch('/grades/notes',{method:'POST',body:{student_id,note,date}});
+    showToast('تم حفظ الملاحظة ✓');
+    closeModal('noteModal');
+  } catch(e){ showToast(e.message,'error'); }
+}
+
+// ===== MY STUDENTS =====
+async function loadMyStudents() {
+  try {
+    const students = await apiFetch('/students');
+    const groups   = myGroups;
+    document.getElementById('myStats').innerHTML = `
+      <div class="stat-card"><div class="stat-icon gold">👥</div><div><div class="stat-value">${students.length}</div><div class="stat-label">إجمالي طلابي</div></div></div>
+      <div class="stat-card"><div class="stat-icon green">🏫</div><div><div class="stat-value">${groups.length}</div><div class="stat-label">حلقاتي</div></div></div>
+    `;
+    document.getElementById('myStudentCards').innerHTML = `
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>الاسم</th><th>الحلقة</th><th>ولي الأمر</th></tr></thead>
+            <tbody>
+              ${students.map(s=>`<tr><td><strong>${s.name}</strong></td><td>${s.group_name||'—'}</td><td>${s.parent_name||'—'}</td></tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+  } catch(e){ showToast(e.message,'error'); }
+}
+
+init();
+</script>
+</body>
+</html>
